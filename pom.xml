@@ -8,6 +8,7 @@
         <module>resourceserver</module>
         <module>apigateway</module>
         <module>albums</module>
+        <module>discoveryservice</module>
     </modules>
     <parent>
         <groupId>org.springframework.boot</groupId>
