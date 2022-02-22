@@ -9,6 +9,7 @@
         <module>apigateway</module>
         <module>albums</module>
         <module>discoveryservice</module>
+        <module>photoappwebclient</module>
     </modules>
     <parent>
         <groupId>org.springframework.boot</groupId>
