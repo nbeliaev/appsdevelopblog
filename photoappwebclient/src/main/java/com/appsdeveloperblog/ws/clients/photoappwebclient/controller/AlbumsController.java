@@ -17,7 +17,9 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
 
@@ -26,18 +28,40 @@ public class AlbumsController {
 
     private final OAuth2AuthorizedClientService authorizedClientService;
     private final RestTemplate restTemplate;
+    private final WebClient webClient;
 
-    public AlbumsController(OAuth2AuthorizedClientService authorizedClientService, RestTemplate restTemplate) {
+    public AlbumsController(OAuth2AuthorizedClientService authorizedClientService, RestTemplate restTemplate, WebClient webClient) {
         this.authorizedClientService = authorizedClientService;
         this.restTemplate = restTemplate;
+        this.webClient = webClient;
     }
 
     @GetMapping("/albums")
-    public String getAlbums(Model model, @AuthenticationPrincipal OidcUser principal) {
+    public String getAlbums(Model model, @RequestParam(required = false, defaultValue = "false") boolean useTemplate,
+                            @AuthenticationPrincipal OidcUser principal) {
 
         OidcIdToken idToken = principal.getIdToken();
         //System.out.println("id token:" + idToken.getTokenValue());
 
+        String url = "http://localhost:8089/albums";
+        List<AlbumDto> albums;
+        if (useTemplate) {
+            albums = getAlbumsViaRestTemplate();
+        } else {
+            albums = webClient.get()
+                    .uri(url)
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<List<AlbumDto>>() {})
+                    .block();
+        }
+        model.addAttribute("albums", albums);
+
+        return "albums";
+    }
+
+    private List<AlbumDto> getAlbumsViaRestTemplate() {
+        System.out.println("use rest");
+        //it's possible to use interceptor for restTemplate to add bearer
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         OAuth2AuthenticationToken token = (OAuth2AuthenticationToken) authentication;
         OAuth2AuthorizedClient oAuth2AuthorizedClient = authorizedClientService.loadAuthorizedClient(
@@ -48,11 +72,9 @@ public class AlbumsController {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(jtwAccessToken);
         HttpEntity<List<AlbumDto>> httpEntity = new HttpEntity<>(headers);
-        ResponseEntity<List<AlbumDto>> responseEntity = restTemplate.exchange(url, HttpMethod.GET, httpEntity, new ParameterizedTypeReference<List<AlbumDto>>() {});
+        ResponseEntity<List<AlbumDto>> responseEntity = restTemplate.exchange(url, HttpMethod.GET, httpEntity, new ParameterizedTypeReference<List<AlbumDto>>() {
+        });
 
-        List<AlbumDto> albums = responseEntity.getBody();
-        model.addAttribute("albums", albums);
-
-        return "albums";
+        return responseEntity.getBody();
     }
 }
