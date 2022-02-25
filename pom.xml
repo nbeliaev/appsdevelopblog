@@ -10,6 +10,7 @@
         <module>albums</module>
         <module>discoveryservice</module>
         <module>photoappwebclient</module>
+        <module>spaclient</module>
     </modules>
     <parent>
         <groupId>org.springframework.boot</groupId>
